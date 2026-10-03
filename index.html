@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>Retorno OAuth — Canto Prático</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #202124; background: #f5f7fa; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1rem; box-sizing: border-box; }
+    main { width: min(100%, 38rem); background: white; border: 1px solid #d9e0e8; border-radius: 1rem; padding: clamp(1.25rem, 4vw, 2rem); box-sizing: border-box; box-shadow: 0 0.5rem 2rem #172b4d12; }
+    h1 { margin-top: 0; font-size: 1.4rem; }
+    p { line-height: 1.5; }
+    .notice { color: #475569; }
+    .field { margin: 1.25rem 0; }
+    label { display: block; font-weight: 650; margin-bottom: 0.4rem; }
+    input { box-sizing: border-box; width: 100%; padding: 0.7rem; border: 1px solid #aab4c0; border-radius: 0.5rem; font: 0.9rem ui-monospace, monospace; }
+    button { padding: 0.65rem 0.9rem; border: 0; border-radius: 0.5rem; color: white; background: #2457a7; font: inherit; cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #8bb7ff; outline-offset: 2px; }
+    #message { min-height: 1.5em; font-weight: 600; }
+    #error { color: #9b1c1c; overflow-wrap: anywhere; }
+    [hidden] { display: none !important; }
+    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Retorno da autorização do Mercado Livre</h1>
+    <p id="message" role="status" aria-live="polite">Aguardando o retorno da autorização.</p>
+    <p id="error" role="alert" hidden></p>
+    <section id="result" hidden>
+      <p class="notice">Copie os dois valores para o programa local. Esta página não faz chamadas adicionais nem grava os valores. Não os compartilhe nem os cole em mensagens.</p>
+      <div class="field">
+        <label for="code">Código de autorização (code)</label>
+        <input id="code" type="text" readonly autocomplete="off" spellcheck="false">
+        <button type="button" data-copy="code">Copiar code</button>
+      </div>
+      <div class="field">
+        <label for="state">Verificação da solicitação (state)</label>
+        <input id="state" type="text" readonly autocomplete="off" spellcheck="false">
+        <button type="button" data-copy="state">Copiar state</button>
+      </div>
+      <p class="notice">No terminal, use <code>python marketplace_api.py finish-mercadolivre</code> e informe os valores nos campos ocultos.</p>
+      <div class="actions"><button id="clear" type="button">Limpar os valores desta página</button></div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      let code = params.get("code") || "";
+      let state = params.get("state") || "";
+      const error = params.get("error_description") || params.get("error") || "";
+      const message = document.getElementById("message");
+      const errorBox = document.getElementById("error");
+      const result = document.getElementById("result");
+
+      // Remove os parâmetros da barra de endereço; os valores ficam só nesta aba.
+      window.history.replaceState(null, "", window.location.pathname);
+
+      if (error) {
+        message.textContent = "O Mercado Livre não concluiu a autorização.";
+        errorBox.textContent = error;
+        errorBox.hidden = false;
+      } else if (code && state) {
+        document.getElementById("code").value = code;
+        document.getElementById("state").value = state;
+        result.hidden = false;
+        message.textContent = "Autorização recebida. Copie code e state para o programa local.";
+      } else {
+        message.textContent = "Esta página é apenas o retorno do OAuth. Inicie a autorização no programa local.";
+      }
+
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const input = document.getElementById(button.dataset.copy);
+          try {
+            await navigator.clipboard.writeText(input.value);
+            message.textContent = `${button.dataset.copy} copiado para a área de transferência.`;
+          } catch {
+            input.focus();
+            input.select();
+            message.textContent = "Selecione e copie o valor destacado.";
+          }
+        });
+      });
+
+      document.getElementById("clear").addEventListener("click", () => {
+        document.getElementById("code").value = "";
+        document.getElementById("state").value = "";
+        code = "";
+        state = "";
+        result.hidden = true;
+        message.textContent = "Valores limpos da tela.";
+      });
+    })();
+  </script>
+</body>
+</html>
